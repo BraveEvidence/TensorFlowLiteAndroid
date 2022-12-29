@@ -12,11 +12,11 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import org.tensorflow.lite.task.gms.vision.detector.Detection
+import org.tensorflow.lite.task.vision.classifier.Classifications
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener {
+class MainActivity : AppCompatActivity(), ImageClassifierHelper.ClassifierListener {
 
 
     private lateinit var cameraExecutor: ExecutorService
@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
 
     private lateinit var viewFinder: PreviewView
 
-    private lateinit var objectDetectorHelper: ObjectDetectorHelper
+    private lateinit var imageClassifierHelper: ImageClassifierHelper
     private lateinit var bitmapBuffer: Bitmap
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,11 +33,19 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
         viewFinder = findViewById(R.id.viewFinder)
 
 
-        objectDetectorHelper = ObjectDetectorHelper(
+        imageClassifierHelper = ImageClassifierHelper(
             context = this,
-            objectDetectorListener = this
+            imageClassifierListener = this
         )
 
+        if (allPermissionsGranted()) {
+            setUpCamera()
+        } else {
+            ActivityCompat.requestPermissions(
+                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+            )
+        }
+        cameraExecutor = Executors.newSingleThreadExecutor()
 
     }
 
@@ -45,6 +53,8 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
         if (allPermissionsGranted()) {
             startCamera()
         }
+
+
 
 //        cameraExecutor = Executors.newSingleThreadExecutor()
 //
@@ -79,15 +89,16 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
 //    }
 
     private fun detectObjects(image: ImageProxy) {
-        Log.i("resultssss", "5")
+
         // Copy out RGB bits to the shared bitmap buffer
         image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
-        Log.i("resultssss", "6")
+
         val imageRotation = image.imageInfo.rotationDegrees
-        Log.i("resultssss", "7")
+
         // Pass Bitmap and rotation to the object detector helper for processing and detection
-        objectDetectorHelper.detect(bitmapBuffer, imageRotation)
-        Log.i("resultssss", "8")
+        imageClassifierHelper.classify(bitmapBuffer, imageRotation)
+//        imageClassifierHelper.
+
     }
 
     private fun startCamera() {
@@ -95,7 +106,9 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
 
         cameraProviderFuture.addListener({
             // Used to bind the lifecycle of cameras to the lifecycle owner
+
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+
             mCameraProvider = cameraProvider
             // Preview
             val surfacePreview = Preview.Builder()
@@ -115,11 +128,11 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
                     .build()
                     // The analyzer can then be assigned to the instance
                     .also {
-                        Log.i("resultssss", "1")
+
                         it.setAnalyzer(cameraExecutor) { image ->
-                            Log.i("resultssss", "2")
+
                             if (!::bitmapBuffer.isInitialized) {
-                                Log.i("resultssss", "3")
+
                                 // The image rotation and RGB image buffer are initialized only once
                                 // the analyzer has started running
                                 bitmapBuffer = Bitmap.createBitmap(
@@ -128,7 +141,7 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
                                     Bitmap.Config.ARGB_8888
                                 )
                             }
-                            Log.i("resultssss", "4")
+
                             detectObjects(image)
                         }
                     }
@@ -160,7 +173,7 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
 
     override fun onDestroy() {
         super.onDestroy()
-        objectDetectorHelper.clearObjectDetector()
+        imageClassifierHelper.clearImageClassifier()
         cameraExecutor.shutdown()
     }
 
@@ -176,11 +189,16 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
         requestCode: Int, permissions: Array<String>, grantResults:
         IntArray
     ) {
+
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
+
             if (allPermissionsGranted()) {
+
                 setUpCamera()
             } else {
+
                 Toast.makeText(
                     this,
                     "Permissions not granted by the user.",
@@ -191,35 +209,32 @@ class MainActivity : AppCompatActivity(), ObjectDetectorHelper.DetectorListener 
         }
     }
 
-    override fun onInitialized() {
-        if (allPermissionsGranted()) {
-            setUpCamera()
-        } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
-            )
-        }
-        cameraExecutor = Executors.newSingleThreadExecutor()
-    }
+//    override fun onInitialized() {
+//        if (allPermissionsGranted()) {
+//            setUpCamera()
+//        } else {
+//            ActivityCompat.requestPermissions(
+//                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+//            )
+//        }
+//        cameraExecutor = Executors.newSingleThreadExecutor()
+//    }
 
     override fun onError(error: String) {
         runOnUiThread { Toast.makeText(this, error, Toast.LENGTH_SHORT).show() }
 
     }
 
-    override fun onResults(
-        results: MutableList<Detection>?,
-        inferenceTime: Long,
-        imageHeight: Int,
-        imageWidth: Int
-    ) {
+    override fun onResults(results: List<Classifications>?, inferenceTime: Long) {
         runOnUiThread {
             Log.i(
                 "resultssss",
-                "${results?.get(0)?.categories.toString()} ${results?.get(0)?.boundingBox.toString()}"
+                "${results?.get(0)?.categories.toString()} ${results?.toString()}"
             )
-        }
 
+//            [<Category "1" (displayName= score=0.99609375 index=1)>] [Classifications{categories=[<Category "1" (displayName= score=0.99609375 index=1)>], headIndex=0}]
+        }
     }
+
 
 }

@@ -27,6 +27,12 @@
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
+
+            <!-- Declare notch support -->
+<!--            <meta-data-->
+<!--                android:name="android.notch_support"-->
+<!--                android:value="true" />-->
+
         </activity>
     </application>
 
