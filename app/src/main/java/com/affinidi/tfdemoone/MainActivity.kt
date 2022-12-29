@@ -12,6 +12,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+//import org.tensorflow.lite.task.gms.vision.classifier.Classifications
 import org.tensorflow.lite.task.vision.classifier.Classifications
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -54,39 +55,7 @@ class MainActivity : AppCompatActivity(), ImageClassifierHelper.ClassifierListen
             startCamera()
         }
 
-
-
-//        cameraExecutor = Executors.newSingleThreadExecutor()
-//
-//
-//        analysisUseCase.setAnalyzer(
-//            // newSingleThreadExecutor() will let us perform analysis on a single worker thread
-//            Executors.newSingleThreadExecutor()
-//        ) { imageProxy ->
-//            processImageProxy(imageProxy)
-//        }
     }
-
-//    @SuppressLint("UnsafeOptInUsageError")
-//    private fun processImageProxy(
-//        imageProxy: ImageProxy
-//    ) {
-//        imageProxy.image?.let { image ->
-//            if (!::bitmapBuffer.isInitialized) {
-//                // The image rotation and RGB image buffer are initialized only once
-//                // the analyzer has started running
-//                bitmapBuffer = Bitmap.createBitmap(
-//                    image.width,
-//                    image.height,
-//                    Bitmap.Config.ARGB_8888
-//                )
-//            }
-//
-//            detectObjects(imageProxy)
-//            mCameraProvider?.unbindAll()
-//        }
-//
-//    }
 
     private fun detectObjects(image: ImageProxy) {
 
@@ -209,30 +178,23 @@ class MainActivity : AppCompatActivity(), ImageClassifierHelper.ClassifierListen
         }
     }
 
-//    override fun onInitialized() {
-//        if (allPermissionsGranted()) {
-//            setUpCamera()
-//        } else {
-//            ActivityCompat.requestPermissions(
-//                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
-//            )
-//        }
-//        cameraExecutor = Executors.newSingleThreadExecutor()
-//    }
-
     override fun onError(error: String) {
         runOnUiThread { Toast.makeText(this, error, Toast.LENGTH_SHORT).show() }
 
     }
 
     override fun onResults(results: List<Classifications>?, inferenceTime: Long) {
+
         runOnUiThread {
             Log.i(
                 "resultssss",
-                "${results?.get(0)?.categories.toString()} ${results?.toString()}"
+                "${results?.get(0)?.categories} ${results?.toString()}"
             )
+            //            [<Category "1" (displayName= score=0.99609375 index=1)>] [Classifications{categories=[<Category "1" (displayName= score=0.99609375 index=1)>], headIndex=0}]
+            val result = results?.get(0)?.categories?.get(0)
+            Log.i("displaydata","${result?.displayName} ${result?.label} ${result?.score} ${result.toString()} ${result?.index}")
 
-//            [<Category "1" (displayName= score=0.99609375 index=1)>] [Classifications{categories=[<Category "1" (displayName= score=0.99609375 index=1)>], headIndex=0}]
+// display name is empty but res of the data is as follows for dog: 1 0.99609375 <Category "1" (displayName= score=0.99609375 index=1)> 1
         }
     }
 
